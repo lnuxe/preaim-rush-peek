@@ -1,0 +1,24 @@
+# 依赖
+node_modules/
+
+# 构建产物
+dist/
+
+# Python 3D 模型工具环境（与 Web 游戏无关）
+.venv_triposr/
+tools_triposr/
+output/
+*.pyc
+__pycache__/
+
+# IDE / 系统
+.DS_Store
+.codebuddy/
+.session_tmps/
+
+# 根目录临时截图
+3d-current-target.png
+3d-training-target.png
+game-3d-model.png
+menu-3d.png
+model-check.png

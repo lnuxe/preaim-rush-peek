@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PREAIM · Rush Peek</title>
+  <!-- 标准设计稿字体：Oswald(Tungsten 兜底) / Inter(正文) / Noto Sans SC(CJK) / JetBrains Mono(数据) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;700&family=JetBrains+Mono:wght@400;700&family=Noto+Sans+SC:wght@400;500;700;900&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- 顶部 HUD -->
+  <div id="hud" class="hidden">
+    <div class="hud-left">
+      <div class="hud-scene" data-i18n="hud.scene">Rush Peek</div>
+      <div class="hud-level" id="hud-level">LV.1</div>
+    </div>
+    <div class="hud-center">
+      <div id="timer" class="hud-timer">60.0</div>
+      <div class="hud-timer-label" data-i18n="hud.seconds">秒</div>
+    </div>
+    <div class="hud-right">
+      <div class="hud-stat">
+        <span class="hud-stat-value" id="kills">0</span>
+        <span class="hud-stat-label" data-i18n="hud.kills">击杀</span>
+      </div>
+      <div class="hud-stat">
+        <span class="hud-stat-value" id="kps">0.00</span>
+        <span class="hud-stat-label" data-i18n="hud.kps">KPS</span>
+      </div>
+    </div>
+    <div class="hud-streak hidden" id="streak">
+      <span class="btn-text"><span id="streak-count">2</span> <span data-i18n="hud.streak">连杀</span></span>
+    </div>
+  </div>
+
+  <!-- 主菜单 -->
+  <div id="menu" class="overlay">
+    <div class="panel">
+      <div class="brand">
+        <div class="brand-pre">PREAIM</div>
+        <h1 class="brand-title">RUSH PEEK</h1>
+        <p class="brand-sub" data-i18n="menu.subtitle">击杀一个目标后，立刻在对侧刷新下一个 —— 玩法快速转火与补枪</p>
+      </div>
+
+      <div class="scene-select">
+        <button class="scene-card" data-scene="rush-peek">
+          <div class="scene-name">Rush Peek</div>
+          <div class="scene-tags">
+            <span data-i18n="scene.standard">标准</span>
+            <span data-i18n="scene.narrow">窄幅甩枪</span>
+          </div>
+          <div class="scene-meta">±42% · R 2.4</div>
+        </button>
+        <button class="scene-card" data-scene="rush-peek-wide">
+          <div class="scene-name">Rush Peek Wide</div>
+          <div class="scene-tags">
+            <span data-i18n="scene.wide">大角度</span>
+            <span data-i18n="scene.harder">更难</span>
+          </div>
+          <div class="scene-meta">±45% · R 2.2</div>
+        </button>
+      </div>
+
+      <!-- 特工头像目标预览 -->
+      <div class="agent-strip">
+        <div class="ts-label" data-i18n="menu.agentStrip">目标特工 · 随机轮换</div>
+        <div class="agent-strip-row" id="agent-strip"></div>
+      </div>
+
+      <button id="start-btn" class="btn-primary"><span class="btn-text" data-i18n="menu.start">开始玩法</span></button>
+
+      <div class="menu-tips">
+        <div class="tip"><span class="tip-key">LMB</span> <span data-i18n="menu.tipClick">单击击杀目标</span></div>
+        <div class="tip"><span class="tip-key">ESC</span> <span data-i18n="menu.tipEsc">退出 / 返回</span></div>
+        <div class="tip"><span class="tip-key">60s</span> <span data-i18n="menu.tipDuration">单局 60 秒，打空会惩罚性重刷新</span></div>
+      </div>
+
+      <div class="menu-footer">
+        <button id="ranking-btn" class="btn-ghost" data-i18n="menu.ranking">排行榜</button>
+        <button id="mode-btn" class="btn-ghost">2D / 3D</button>
+        <button id="settings-btn" class="btn-ghost" data-i18n="menu.settings">自定义设置</button>
+        <button id="lang-btn" class="btn-lang">中文 / EN</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 自定义设置 -->
+  <div id="settings" class="overlay hidden">
+    <div class="panel panel-settings">
+      <div class="settings-head">
+        <h2 class="settings-title" data-i18n="settings.title">自定义设置</h2>
+        <button id="settings-close" class="btn-close">×</button>
+      </div>
+
+      <div class="settings-tabs">
+        <button class="tab active" data-tab="crosshair" data-i18n="settings.tabCrosshair">准星</button>
+        <button class="tab" data-tab="agent" data-i18n="settings.tabAgent">特工头像</button>
+        <button class="tab" data-tab="sound" data-i18n="settings.tabSound">音效</button>
+        <button class="tab" data-tab="aim" data-i18n="settings.tabAim">瞄准</button>
+      </div>
+
+      <!-- 准星 -->
+      <div class="tab-body" id="tab-crosshair">
+        <div class="ch-top">
+          <div class="ch-preview-wrap"><canvas id="ch-preview" width="150" height="150"></canvas></div>
+          <div class="ch-side">
+            <div class="ch-row colors" id="ch-colors"></div>
+            <div class="ch-import">
+              <input id="ch-code" type="text" spellcheck="false" placeholder="0;P;c;1;o;1;d;1;z;4;f;0;..." />
+              <div class="ch-import-btns">
+                <button id="ch-apply" class="btn-mini" data-i18n="ch.apply">应用</button>
+                <button id="ch-export" class="btn-mini" data-i18n="ch.export">导出</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="ch-controls" id="ch-controls"></div>
+      </div>
+
+      <!-- 特工头像 -->
+      <div class="tab-body hidden" id="tab-agent">
+        <p class="agent-hint" data-i18n="agent.hint">特工模式下，目标将在以下头像中随机轮换。可上传自己的透明 PNG 立绘。</p>
+        <div class="agent-grid" id="agent-grid"></div>
+        <button id="agent-upload" class="btn-ghost" data-i18n="agent.upload">上传自定义头像</button>
+        <input type="file" id="agent-file" accept="image/png,image/webp,image/jpeg" hidden />
+      </div>
+
+      <!-- 音效 -->
+      <div class="tab-body hidden" id="tab-sound">
+        <p class="sound-hint" data-i18n="sound.hint">选择内置合成音效，或上传自己的音频文件（MP3/WAV/OGG）。上传后自动优先播放。</p>
+
+        <div class="sound-group">
+          <div class="sound-group-title" data-i18n="sound.killTitle">击杀音效</div>
+          <div class="sound-picker" id="sound-kill-picker"></div>
+          <button class="btn-mini sound-preview" data-sound-preview="kill" data-i18n="sound.preview">试听</button>
+          <button class="btn-mini sound-upload" data-sound-upload="kill" data-i18n="sound.upload">上传自定义</button>
+          <span class="sound-custom-name" id="sound-kill-custom"></span>
+          <button class="btn-mini sound-clear hidden" data-sound-clear="kill" data-i18n="sound.clear">清除自定义</button>
+        </div>
+
+        <div class="sound-group">
+          <div class="sound-group-title" data-i18n="sound.missTitle">丢失音效</div>
+          <div class="sound-picker" id="sound-miss-picker"></div>
+          <button class="btn-mini sound-preview" data-sound-preview="miss" data-i18n="sound.preview">试听</button>
+          <button class="btn-mini sound-upload" data-sound-upload="miss" data-i18n="sound.upload">上传自定义</button>
+          <span class="sound-custom-name" id="sound-miss-custom"></span>
+          <button class="btn-mini sound-clear hidden" data-sound-clear="miss" data-i18n="sound.clear">清除自定义</button>
+        </div>
+
+        <input type="file" id="sound-file" accept="audio/*" hidden />
+      </div>
+
+      <!-- 瞄准 -->
+      <div class="tab-body hidden" id="tab-aim">
+        <p class="aim-hint" data-i18n="aim.hint">对齐无畏契约手感：103° FOV、0.07°/count 灵敏度（1:1）。仅 3D 模式生效。</p>
+        <div class="aim-controls" id="aim-controls"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 结算 -->
+  <div id="result" class="overlay hidden">
+    <div class="panel">
+      <h1 class="result-title" data-i18n="result.title">玩法结束</h1>
+      <div class="result-scene" id="result-scene">Rush Peek</div>
+
+      <div class="result-hero">
+        <div class="result-rank" id="r-rank">S</div>
+        <div class="result-hero-stat">
+          <div class="result-value result-value-hero" id="r-kills">0</div>
+          <div class="result-label" data-i18n="result.kills">击杀</div>
+        </div>
+      </div>
+
+      <div class="result-bar">
+        <div class="result-bar-fill" id="r-accuracy-fill"></div>
+      </div>
+      <div class="result-bar-caption">
+        <span data-i18n="result.accuracy">命中率</span>
+        <span class="result-value-inline" id="r-accuracy">0%</span>
+      </div>
+
+      <div class="result-grid">
+        <div class="result-cell">
+          <div class="result-value" id="r-kps">0.00</div>
+          <div class="result-label" data-i18n="result.kps">KPS</div>
+        </div>
+        <div class="result-cell">
+          <div class="result-value" id="r-streak">0</div>
+          <div class="result-label" data-i18n="result.streak">最高连杀</div>
+        </div>
+        <div class="result-cell">
+          <div class="result-value" id="r-level">1</div>
+          <div class="result-label" data-i18n="result.level">最终等级</div>
+        </div>
+      </div>
+
+      <div class="result-actions">
+        <button id="retry-btn" class="btn-primary"><span class="btn-text" data-i18n="result.retry">再来一局</span></button>
+        <button id="menu-btn" class="btn-ghost"><span class="btn-text" data-i18n="result.menu">返回菜单</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 暂停菜单 -->
+  <div id="pause" class="overlay hidden">
+    <div class="panel panel-pause">
+      <div class="brand">
+        <div class="brand-pre">PAUSED</div>
+        <h1 class="result-title pause-title" data-i18n="pause.title">玩法已暂停</h1>
+      </div>
+      <div class="pause-actions">
+        <button id="resume-btn" class="btn-primary"><span class="btn-text" data-i18n="pause.resume">继续玩法</span></button>
+        <button id="restart-btn" class="btn-ghost"><span class="btn-text" data-i18n="pause.restart">重新开始</span></button>
+        <button id="pause-exit-btn" class="btn-ghost btn-danger"><span class="btn-text" data-i18n="pause.exit">退出到主菜单</span></button>
+      </div>
+      <div id="pause-confirm" class="pause-confirm hidden">
+        <p class="pause-confirm-text" data-i18n="pause.confirmText">确定要退出吗？本局成绩将不会保存。</p>
+        <div class="pause-confirm-actions">
+          <button id="pause-exit-confirm" class="btn-ghost btn-danger"><span class="btn-text" data-i18n="pause.confirm">确认退出</span></button>
+          <button id="pause-exit-cancel" class="btn-ghost"><span class="btn-text" data-i18n="pause.cancel">取消</span></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 排行榜 -->
+  <div id="ranking" class="overlay hidden">
+    <div class="panel panel-ranking">
+      <div class="settings-head">
+        <h2 class="settings-title" data-i18n="ranking.title">排行榜</h2>
+        <button id="ranking-close" class="btn-close">×</button>
+      </div>
+      <div class="ranking-head">
+        <span class="rh-rank">#</span>
+        <span class="rh-mode" data-i18n="ranking.mode">模式</span>
+        <span class="rh-scene" data-i18n="ranking.scene">场景</span>
+        <span class="rh-loc" data-i18n="ranking.loc">归属地</span>
+        <span class="rh-kills" data-i18n="ranking.kills">击杀</span>
+        <span class="rh-acc" data-i18n="ranking.acc">命中率</span>
+        <span class="rh-rank2" data-i18n="ranking.rank">评级</span>
+        <span class="rh-date" data-i18n="ranking.date">日期</span>
+      </div>
+      <div class="ranking-list" id="ranking-list"></div>
+      <div class="ranking-empty hidden" id="ranking-empty" data-i18n="ranking.empty">暂无记录，完成一局玩法后上榜</div>
+      <div class="ranking-footer">
+        <button id="ranking-clear" class="btn-ghost btn-danger" data-i18n="ranking.clear">清空记录</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

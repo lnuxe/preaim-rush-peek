@@ -1,0 +1,19 @@
+{
+  "name": "preaim-rush-peek",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "PREAIM Rush Peek — Valorant-style target switching trainer (WebGL)",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && node scripts/compress-obj.mjs",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "pixi.js": "^8.6.6",
+    "three": "^0.186.0"
+  },
+  "devDependencies": {
+    "vite": "^5.4.10"
+  }
+}
